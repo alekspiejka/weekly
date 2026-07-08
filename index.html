@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0E0F12">
-<title>Tygodnik</title>
+<title>keep it CUUUUuuuuuute</title>
 <style>
   :root{
     --bg:#0E0F12;
@@ -144,6 +144,25 @@
   .task .del:hover,.gitem .del:hover{color:var(--ink);background:var(--hair)}
 
   .add-row{display:flex;gap:8px;margin-top:10px}
+  .edit-row{display:flex;gap:8px;flex:1;align-items:center}
+  .edit-row input[type=time]{
+    flex:0 0 88px;border:none;border-radius:10px;
+    background:var(--bg);padding:8px 8px;font-size:13px;
+  }
+  .edit-row input[type=text]{
+    flex:1;min-width:0;border:none;border-radius:10px;
+    background:var(--bg);padding:8px 12px;font-size:14px;
+  }
+  .edit-row .ecat{flex:0 1 110px}
+  .edit-row .save{
+    flex:0 0 30px;height:30px;background:var(--blue);color:#fff;
+    border-radius:50%;display:grid;place-items:center;
+  }
+  .edit-row .save svg{width:13px;height:13px;stroke:#fff;stroke-width:3;fill:none;opacity:1}
+  .edit-row .cancel{
+    flex:0 0 auto;color:var(--muted);font-size:17px;line-height:1;padding:2px 5px;border-radius:6px;
+  }
+  .edit-row .cancel:hover{color:var(--ink);background:var(--hair)}
   .add-row input[type=time]{
     flex:0 0 88px;border:none;border-radius:10px;
     background:var(--bg);padding:8px 8px;font-size:13px;
@@ -219,6 +238,12 @@
   }
   footer button:hover,footer label:hover{color:var(--blue)}
   #importFile{display:none}
+  .colophon{
+    max-width:880px;margin:0 auto;padding:0 16px 34px;
+    text-align:center;
+    font-size:12.5px;font-style:italic;
+    color:var(--muted);letter-spacing:.03em;
+  }
   .warn{
     max-width:880px;margin:0 auto;padding:10px 16px 0;
     font-size:12.5px;color:#D9A05E;display:none;
@@ -246,11 +271,12 @@
 <main id="main"></main>
 
 <footer>
-  <span>tygodnik</span>
+  <span>keep it CUUUUuuuuuute</span>
   <button id="exportBtn" type="button">export data</button>
   <label for="importFile">import data</label>
   <input type="file" id="importFile" accept="application/json">
 </footer>
+<p class="colophon">que aquí el mejor artista es dios</p>
 
 <script>
 "use strict";
@@ -305,6 +331,7 @@ function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(
 /* ---------- rendering ---------- */
 const main = document.getElementById("main");
 let view = "this";
+let editing = null; // {kind:"task", week, id} or {kind:"g", id}
 const DECOS = [
   "꧁⎝ 𓆩༺✧༻𓆪 ⎠꧂",
   "⋆˚꩜｡ ✧˖°",
@@ -368,15 +395,28 @@ function renderWeek(offset){
         </div>
         <ul class="tasks">`;
     for(const t of dayTasks){
+      if(editing && editing.kind==="task" && editing.id===t.id){
+        html += `
+        <li class="task">
+          <form class="edit-row" data-week="${weekKey}" data-id="${t.id}">
+            <input type="time" value="${t.time||""}" aria-label="time">
+            <input type="text" value="${esc(t.text)}" aria-label="plan" required>
+            <button class="save" type="submit" aria-label="save">${CHECK}</button>
+            <button class="cancel" type="button" data-act="cancel-edit" aria-label="cancel">&times;</button>
+          </form>
+        </li>`;
+        continue;
+      }
       html += `
         <li class="task ${t.done?"done":""}">
           <button class="check" data-act="toggle" data-week="${weekKey}" data-id="${t.id}"
                   role="checkbox" aria-checked="${t.done}"
-                  aria-label="Mark ${t.done?"not done":"done"}">${CHECK}</button>
+                  aria-label="mark ${t.done?"not done":"done"}">${CHECK}</button>
           ${t.time ? `<span class="time">${t.time}</span>` : ""}
-          <button class="txt" data-act="toggle" data-week="${weekKey}" data-id="${t.id}">${esc(t.text)}</button>
+          <button class="txt" data-act="edit-task" data-week="${weekKey}" data-id="${t.id}"
+                  title="tap to edit">${esc(t.text)}</button>
           <button class="del" data-act="delete" data-week="${weekKey}" data-id="${t.id}"
-                  aria-label="Delete">&times;</button>
+                  aria-label="delete">&times;</button>
         </li>`;
     }
     html += `</ul>
@@ -408,13 +448,25 @@ function renderGroceries(){
   for(const c of cats){
     html += `<section class="g-cat"><h2>${esc(c)}</h2><ul class="gitems">`;
     for(const it of items.filter(i => (i.cat||"lista") === c)){
+      if(editing && editing.kind==="g" && editing.id===it.id){
+        html += `
+        <li class="gitem">
+          <form class="edit-row g-edit" data-id="${it.id}">
+            <input type="text" class="ename" value="${esc(it.name)}" aria-label="item" required>
+            <input type="text" class="ecat" value="${esc(it.cat||"")}" list="catList" placeholder="category" aria-label="category">
+            <button class="save" type="submit" aria-label="save">${CHECK}</button>
+            <button class="cancel" type="button" data-act="cancel-edit" aria-label="cancel">&times;</button>
+          </form>
+        </li>`;
+        continue;
+      }
       html += `
         <li class="gitem ${it.have?"have":""}">
           <button class="check" data-act="gtoggle" data-id="${it.id}"
                   role="checkbox" aria-checked="${it.have}"
-                  aria-label="Toggle">${CHECK}</button>
-          <button class="txt" data-act="gtoggle" data-id="${it.id}">${esc(it.name)}</button>
-          <button class="del" data-act="gdelete" data-id="${it.id}" aria-label="Delete">&times;</button>
+                  aria-label="toggle">${CHECK}</button>
+          <button class="txt" data-act="edit-g" data-id="${it.id}" title="tap to edit">${esc(it.name)}</button>
+          <button class="del" data-act="gdelete" data-id="${it.id}" aria-label="delete">&times;</button>
         </li>`;
     }
     html += `</ul></section>`;
@@ -478,13 +530,30 @@ function renderArchive(){
 /* ---------- events ---------- */
 document.querySelector(".nav-inner").addEventListener("click", e => {
   const t = e.target.closest(".tab");
-  if(t){ view = t.dataset.view; render(); }
+  if(t){ view = t.dataset.view; editing = null; render(); }
 });
 
 main.addEventListener("click", e => {
   const b = e.target.closest("button[data-act]");
   if(!b) return;
   const act = b.dataset.act;
+  if(act === "edit-task"){
+    editing = {kind:"task", week:b.dataset.week, id:b.dataset.id};
+    render();
+    const inp = main.querySelector('.edit-row input[type=text]');
+    if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    return;
+  }
+  if(act === "edit-g"){
+    editing = {kind:"g", id:b.dataset.id};
+    render();
+    const inp = main.querySelector('.edit-row .ename');
+    if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    return;
+  }
+  if(act === "cancel-edit"){
+    editing = null; render(); return;
+  }
   if(act === "toggle" || act === "delete"){
     const arr = weekTasks(b.dataset.week);
     const i = arr.findIndex(t => t.id === b.dataset.id);
@@ -504,6 +573,25 @@ main.addEventListener("click", e => {
 main.addEventListener("submit", e => {
   e.preventDefault();
   const f = e.target;
+  if(f.classList.contains("edit-row")){
+    if(f.classList.contains("g-edit")){
+      const it = state.groceries.find(g => g.id === f.dataset.id);
+      if(it){
+        it.name = f.querySelector(".ename").value.trim() || it.name;
+        it.cat = f.querySelector(".ecat").value.trim();
+      }
+    }else{
+      const arr = weekTasks(f.dataset.week);
+      const t = arr.find(x => x.id === f.dataset.id);
+      if(t){
+        t.text = f.querySelector('input[type=text]').value.trim() || t.text;
+        t.time = f.querySelector('input[type=time]').value;
+      }
+    }
+    editing = null;
+    saveState(); render();
+    return;
+  }
   if(f.classList.contains("add-row")){
     const time = f.querySelector('input[type=time]').value;
     const text = f.querySelector('input[type=text]').value.trim();
