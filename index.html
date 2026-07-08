@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0E0F12">
+<title>Tygodnik</title>
+<style>
+  :root{
+    --bg:#0E0F12;
+    --card:#1A1C21;
+    --ink:#F2F3F5;
+    --muted:#8A8F9A;
+    --hair:#2A2D34;
+    --blue:#3E8BFF;
+    --blue-soft:#16263E;
+    --done:#5C616C;
+    --shadow:0 1px 3px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
+    --r:16px;
+    --ui:-apple-system,"SF Pro Text","Avenir Next","Segoe UI",Roboto,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--ui);
+    font-size:16px;line-height:1.45;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  input,textarea{font:inherit;color:inherit}
+  input:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible{
+    outline:2px solid var(--blue);outline-offset:2px;border-radius:6px;
+  }
+
+  /* ---------- nav ---------- */
+  nav{
+    position:sticky;top:0;z-index:10;
+    background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(10px);
+    padding:10px 0 8px;
+  }
+  .nav-inner{
+    max-width:880px;margin:0 auto;
+    display:flex;gap:8px;
+    padding:0 16px;
+    overflow-x:auto;scrollbar-width:none;
+  }
+  .nav-inner::-webkit-scrollbar{display:none}
+  .tab{
+    padding:8px 16px;
+    font-size:14px;font-weight:600;
+    color:var(--muted);
+    background:var(--card);
+    border-radius:999px;
+    box-shadow:var(--shadow);
+    white-space:nowrap;
+    transition:color .15s, background .15s;
+  }
+  .tab[aria-selected="true"]{color:#fff;background:var(--blue)}
+
+  /* ---------- layout ---------- */
+  main{max-width:880px;margin:0 auto;padding:20px 16px 80px}
+
+  /* ---------- masthead ---------- */
+  .masthead{margin:6px 2px 18px}
+  .masthead .kicker{
+    font-size:12px;font-weight:600;letter-spacing:.08em;
+    color:var(--blue);
+  }
+  .masthead h1{
+    font-size:clamp(26px,6vw,34px);
+    font-weight:700;letter-spacing:-.02em;
+    display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  }
+  .masthead h1 .range{font-size:14px;font-weight:500;color:var(--muted)}
+  .deco{font-size:15px;font-weight:400;color:var(--blue);white-space:nowrap;letter-spacing:.02em}
+  summary .deco{font-size:12px}
+
+  /* ---------- notes ---------- */
+  .notes{margin:0 0 18px}
+  .notes textarea{
+    width:100%;min-height:64px;resize:vertical;
+    font-size:15px;line-height:1.6;
+    border:none;border-radius:var(--r);
+    background:var(--card);box-shadow:var(--shadow);
+    padding:14px 16px;
+  }
+  .notes textarea::placeholder{color:var(--muted)}
+  .arch-notes{
+    margin:10px 0 6px;padding:10px 12px;font-size:14px;
+    background:var(--blue-soft);border-radius:10px;
+    white-space:pre-wrap;
+  }
+
+  /* ---------- week ---------- */
+  .days{display:grid;gap:14px}
+  @media(min-width:740px){.days{grid-template-columns:1fr 1fr}}
+  .day{
+    background:var(--card);
+    border-radius:var(--r);
+    box-shadow:var(--shadow);
+    padding:14px 16px 12px;
+  }
+  .day.today{box-shadow:var(--shadow), inset 0 0 0 1.5px var(--blue)}
+  .day-head{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding-bottom:8px;
+  }
+  .day-name{font-size:16px;font-weight:700}
+  .day.today .day-name{color:var(--blue)}
+  .day-date{font-size:12.5px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+
+  ul.tasks{list-style:none}
+  .task{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid var(--hair);
+  }
+  .task:last-of-type{border-bottom:none}
+  .check{
+    flex:0 0 22px;height:22px;width:22px;
+    border:2px solid #3A3E47;border-radius:50%;
+    display:grid;place-items:center;
+    transition:background .15s,border-color .15s;
+  }
+  .check svg{width:12px;height:12px;stroke:#fff;stroke-width:3;fill:none;opacity:0;transition:opacity .15s}
+  .task.done .check,.gitem.have .check{background:var(--blue);border-color:var(--blue)}
+  .task.done .check svg,.gitem.have .check svg{opacity:1}
+  .task .time{
+    flex:0 0 auto;
+    font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;
+    color:var(--blue);background:var(--blue-soft);
+    padding:2px 8px;border-radius:999px;
+  }
+  .task .txt{flex:1;min-width:0;text-align:left;overflow-wrap:anywhere;font-size:15px;padding:0}
+  .task.done .txt{color:var(--done);text-decoration:line-through;text-decoration-color:var(--done)}
+  .task.done .time{color:var(--done);background:var(--hair)}
+  .task .del,.gitem .del{
+    flex:0 0 auto;color:#4A4F59;font-size:16px;line-height:1;padding:2px 5px;border-radius:6px;
+  }
+  .task .del:hover,.gitem .del:hover{color:var(--ink);background:var(--hair)}
+
+  .add-row{display:flex;gap:8px;margin-top:10px}
+  .add-row input[type=time]{
+    flex:0 0 88px;border:none;border-radius:10px;
+    background:var(--bg);padding:8px 8px;font-size:13px;
+  }
+  .add-row input[type=text]{
+    flex:1;min-width:0;border:none;border-radius:10px;
+    background:var(--bg);padding:8px 12px;font-size:14px;
+  }
+  .add-row input::placeholder{color:var(--muted)}
+  .add-row .add,.g-add .add{
+    flex:0 0 34px;height:34px;
+    background:var(--blue);color:#fff;
+    border-radius:50%;font-size:19px;line-height:1;
+    display:grid;place-items:center;
+    transition:filter .15s;
+  }
+  .add-row .add:hover,.g-add .add:hover{filter:brightness(1.08)}
+
+  /* ---------- groceries ---------- */
+  .g-note{font-size:13.5px;color:var(--muted);margin:-8px 2px 18px}
+  .g-cat{
+    background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
+    padding:14px 16px 10px;margin-bottom:14px;
+  }
+  .g-cat h2{font-size:16px;font-weight:700;padding-bottom:6px}
+  ul.gitems{list-style:none}
+  .gitem{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 0;border-bottom:1px solid var(--hair);
+  }
+  .gitem:last-child{border-bottom:none}
+  .gitem .txt{flex:1;text-align:left;padding:0;overflow-wrap:anywhere;font-size:15px}
+  .gitem.have .txt{color:var(--done);text-decoration:line-through;text-decoration-color:var(--done)}
+  .g-add{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;align-items:center}
+  .g-add input[type=text]{
+    border:none;border-radius:10px;background:var(--card);box-shadow:var(--shadow);
+    padding:9px 12px;font-size:14px;
+  }
+  .g-add .name{flex:2 1 180px;min-width:0}
+  .g-add .cat{flex:1 1 130px;min-width:0}
+
+  /* ---------- archive ---------- */
+  .arch-empty{color:var(--muted);font-size:14px;padding:0 2px}
+  details.arch{
+    background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
+    margin-bottom:12px;overflow:hidden;
+  }
+  details.arch summary{
+    cursor:pointer;padding:14px 16px;
+    font-size:15.5px;font-weight:700;
+    display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    list-style:none;
+  }
+  details.arch summary::-webkit-details-marker{display:none}
+  details.arch summary .meta{font-size:12.5px;font-weight:500;color:var(--muted)}
+  details.arch[open] summary{border-bottom:1px solid var(--hair)}
+  .arch-body{padding:6px 16px 14px}
+  .arch-day{margin:10px 0 4px;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted)}
+  .arch-task{display:flex;gap:10px;align-items:baseline;padding:3px 0;font-size:14.5px}
+  .arch-task .time{flex:0 0 auto;font-size:11.5px;font-weight:600;color:var(--blue);background:var(--blue-soft);padding:1px 7px;border-radius:999px;font-variant-numeric:tabular-nums}
+  .arch-task.done{color:var(--done);text-decoration:line-through}
+  .arch-task.done .time{color:var(--done);background:var(--hair)}
+
+  /* ---------- footer ---------- */
+  footer{
+    max-width:880px;margin:0 auto;padding:0 16px 40px;
+    display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+    font-size:12.5px;color:var(--muted);
+  }
+  footer button,footer label{
+    color:var(--muted);font-weight:500;cursor:pointer;
+    text-decoration:underline;text-underline-offset:2px;
+  }
+  footer button:hover,footer label:hover{color:var(--blue)}
+  #importFile{display:none}
+  .warn{
+    max-width:880px;margin:0 auto;padding:10px 16px 0;
+    font-size:12.5px;color:#D9A05E;display:none;
+  }
+
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="warn" id="storageWarn">
+  storage is unavailable in this browser context, so changes will not survive a reload.
+  open the file in safari or another full browser for persistence.
+</div>
+
+<nav aria-label="Sections">
+  <div class="nav-inner" role="tablist">
+    <button class="tab" role="tab" data-view="this" aria-selected="true">this week</button>
+    <button class="tab" role="tab" data-view="next" aria-selected="false">next week</button>
+    <button class="tab" role="tab" data-view="groceries" aria-selected="false">groceries</button>
+    <button class="tab" role="tab" data-view="archive" aria-selected="false">archive</button>
+  </div>
+</nav>
+
+<main id="main"></main>
+
+<footer>
+  <span>tygodnik</span>
+  <button id="exportBtn" type="button">export data</button>
+  <label for="importFile">import data</label>
+  <input type="file" id="importFile" accept="application/json">
+</footer>
+
+<script>
+"use strict";
+
+/* ---------- storage ---------- */
+const KEY = "tygodnik.v1";
+let memoryStore = null;
+function loadState(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    return raw ? JSON.parse(raw) : freshState();
+  }catch(e){
+    document.getElementById("storageWarn").style.display = "block";
+    memoryStore = memoryStore || freshState();
+    return memoryStore;
+  }
+}
+function saveState(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch(e){ memoryStore = state; }
+}
+function freshState(){ return { weeks:{}, groceries:[], notes:{} }; }
+let state = loadState();
+if(!state.notes) state.notes = {};
+
+/* ---------- dates ---------- */
+function pad(n){ return String(n).padStart(2,"0"); }
+function isoDate(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function mondayOf(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay()+6)%7));
+  return x;
+}
+function addDays(d,n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function isoWeekNo(d){
+  const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = (x.getUTCDay()+6)%7;
+  x.setUTCDate(x.getUTCDate() - day + 3);
+  const firstThu = new Date(Date.UTC(x.getUTCFullYear(),0,4));
+  return 1 + Math.round(((x - firstThu)/86400000 - 3 + ((firstThu.getUTCDay()+6)%7)) / 7);
+}
+const DAY_NAMES = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+function fmtShort(d){ return d.getDate()+" "+MONTHS[d.getMonth()]; }
+
+function weekTasks(weekKey){
+  if(!state.weeks[weekKey]) state.weeks[weekKey] = [];
+  return state.weeks[weekKey];
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ---------- rendering ---------- */
+const main = document.getElementById("main");
+let view = "this";
+const DECOS = [
+  "꧁⎝ 𓆩༺✧༻𓆪 ⎠꧂",
+  "⋆˚꩜｡ ✧˖°",
+  "( ˶ˆᗜˆ˵ )",
+  "≽^•⩊•^≼",
+  "ᯓ★ ⋆｡°✩",
+  "٩(ˊᗜˋ*)و ♡",
+  "⊹₊⟡⋆",
+  "( ๑˃̵ᴗ˂̵)و ✧",
+  "₍ᐢ. .ᐢ₎ ₊˚⊹",
+  "☾ ⋆*･ﾟ:⋆*"
+];
+const CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><polyline points="3 8.5 6.5 12 13 4.5"/></svg>';
+
+function esc(s){
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function render(){
+  document.querySelectorAll(".tab").forEach(t =>
+    t.setAttribute("aria-selected", String(t.dataset.view === view)));
+  if(view === "this")      renderWeek(0);
+  else if(view === "next") renderWeek(1);
+  else if(view === "groceries") renderGroceries();
+  else renderArchive();
+  window.scrollTo(0,0);
+}
+
+function renderWeek(offset){
+  const today = new Date();
+  const monday = addDays(mondayOf(today), offset*7);
+  const weekKey = isoDate(monday);
+  const sunday = addDays(monday,6);
+  const tasks = weekTasks(weekKey);
+  const todayISO = isoDate(today);
+
+  let html = `
+    <header class="masthead">
+      <div class="kicker">${offset===0 ? "current week" : "next week"}</div>
+      <h1>week ${isoWeekNo(monday)}
+        <span class="deco" aria-hidden="true">${DECOS[isoWeekNo(monday) % DECOS.length]}</span>
+        <span class="range">${fmtShort(monday)} &ndash; ${fmtShort(sunday)} ${sunday.getFullYear()}</span>
+      </h1>
+    </header>
+    <div class="notes">
+      <textarea id="weekNotes" data-week="${weekKey}" aria-label="Week notes"
+        placeholder="notes for the week&hellip;">${esc(state.notes[weekKey]||"")}</textarea>
+    </div>
+    <div class="days">`;
+
+  for(let i=0;i<7;i++){
+    const d = addDays(monday,i);
+    const isToday = isoDate(d) === todayISO;
+    const dayTasks = tasks.filter(t => t.day === i)
+      .sort((a,b) => (a.time||"99:99").localeCompare(b.time||"99:99"));
+    html += `
+      <section class="day ${isToday?"today":""}">
+        <div class="day-head">
+          <span class="day-name">${DAY_NAMES[i]}</span>
+          <span class="day-date">${fmtShort(d)}</span>
+        </div>
+        <ul class="tasks">`;
+    for(const t of dayTasks){
+      html += `
+        <li class="task ${t.done?"done":""}">
+          <button class="check" data-act="toggle" data-week="${weekKey}" data-id="${t.id}"
+                  role="checkbox" aria-checked="${t.done}"
+                  aria-label="Mark ${t.done?"not done":"done"}">${CHECK}</button>
+          ${t.time ? `<span class="time">${t.time}</span>` : ""}
+          <button class="txt" data-act="toggle" data-week="${weekKey}" data-id="${t.id}">${esc(t.text)}</button>
+          <button class="del" data-act="delete" data-week="${weekKey}" data-id="${t.id}"
+                  aria-label="Delete">&times;</button>
+        </li>`;
+    }
+    html += `</ul>
+        <form class="add-row" data-week="${weekKey}" data-day="${i}">
+          <input type="time" aria-label="Time (optional)">
+          <input type="text" placeholder="add a plan&hellip;" aria-label="Plan" required>
+          <button class="add" type="submit" aria-label="Add">+</button>
+        </form>
+      </section>`;
+  }
+  html += `</div>`;
+  main.innerHTML = html;
+}
+
+function renderGroceries(){
+  const items = state.groceries;
+  const cats = [];
+  for(const it of items){
+    const c = it.cat || "lista";
+    if(!cats.includes(c)) cats.push(c);
+  }
+  let html = `
+    <header class="masthead">
+      <div class="kicker">shopping list</div>
+      <h1>groceries</h1>
+    </header>
+    <p class="g-note">tap an item when you have it; tap again when it runs out.</p>`;
+
+  for(const c of cats){
+    html += `<section class="g-cat"><h2>${esc(c)}</h2><ul class="gitems">`;
+    for(const it of items.filter(i => (i.cat||"lista") === c)){
+      html += `
+        <li class="gitem ${it.have?"have":""}">
+          <button class="check" data-act="gtoggle" data-id="${it.id}"
+                  role="checkbox" aria-checked="${it.have}"
+                  aria-label="Toggle">${CHECK}</button>
+          <button class="txt" data-act="gtoggle" data-id="${it.id}">${esc(it.name)}</button>
+          <button class="del" data-act="gdelete" data-id="${it.id}" aria-label="Delete">&times;</button>
+        </li>`;
+    }
+    html += `</ul></section>`;
+  }
+  if(!items.length) html += `<p class="arch-empty">nothing on the list yet.</p>`;
+
+  const existing = cats.filter(c => c !== "lista");
+  html += `
+    <form class="g-add" id="gAdd">
+      <input type="text" class="name" placeholder="item&hellip;" aria-label="Item" required>
+      <input type="text" class="cat" list="catList" placeholder="category (optional)" aria-label="Category">
+      <datalist id="catList">${existing.map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
+      <button class="add" type="submit" aria-label="Add">+</button>
+    </form>`;
+  main.innerHTML = html;
+}
+
+function renderArchive(){
+  const currentKey = isoDate(mondayOf(new Date()));
+  const past = [...new Set([...Object.keys(state.weeks), ...Object.keys(state.notes)])]
+    .filter(k => k < currentKey && ((state.weeks[k]||[]).length || state.notes[k]))
+    .sort().reverse();
+
+  let html = `
+    <header class="masthead">
+      <div class="kicker">past weeks</div>
+      <h1>archive</h1>
+    </header>`;
+
+  if(!past.length){
+    html += `<p class="arch-empty">weeks land here automatically once they are over. nothing yet.</p>`;
+  }
+  for(const k of past){
+    const monday = new Date(k+"T00:00:00");
+    const sunday = addDays(monday,6);
+    const tasks = state.weeks[k] || [];
+    const done = tasks.filter(t=>t.done).length;
+    html += `
+      <details class="arch">
+        <summary>
+          <span>week ${isoWeekNo(monday)} <span class="deco" aria-hidden="true">${DECOS[isoWeekNo(monday) % DECOS.length]}</span></span>
+          <span class="meta">${fmtShort(monday)} &ndash; ${fmtShort(sunday)} ${sunday.getFullYear()} &middot; ${done}/${tasks.length} done</span>
+        </summary>
+        <div class="arch-body">`;
+    if(state.notes[k]) html += `<div class="arch-notes">${esc(state.notes[k])}</div>`;
+    for(let i=0;i<7;i++){
+      const dayTasks = tasks.filter(t=>t.day===i)
+        .sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99"));
+      if(!dayTasks.length) continue;
+      html += `<div class="arch-day">${DAY_NAMES[i]}</div>`;
+      for(const t of dayTasks){
+        html += `<div class="arch-task ${t.done?"done":""}">
+          ${t.time?`<span class="time">${t.time}</span>`:""}<span>${esc(t.text)}</span></div>`;
+      }
+    }
+    html += `</div></details>`;
+  }
+  main.innerHTML = html;
+}
+
+/* ---------- events ---------- */
+document.querySelector(".nav-inner").addEventListener("click", e => {
+  const t = e.target.closest(".tab");
+  if(t){ view = t.dataset.view; render(); }
+});
+
+main.addEventListener("click", e => {
+  const b = e.target.closest("button[data-act]");
+  if(!b) return;
+  const act = b.dataset.act;
+  if(act === "toggle" || act === "delete"){
+    const arr = weekTasks(b.dataset.week);
+    const i = arr.findIndex(t => t.id === b.dataset.id);
+    if(i < 0) return;
+    if(act === "toggle") arr[i].done = !arr[i].done;
+    else arr.splice(i,1);
+    saveState(); render();
+  }else if(act === "gtoggle" || act === "gdelete"){
+    const i = state.groceries.findIndex(g => g.id === b.dataset.id);
+    if(i < 0) return;
+    if(act === "gtoggle") state.groceries[i].have = !state.groceries[i].have;
+    else state.groceries.splice(i,1);
+    saveState(); render();
+  }
+});
+
+main.addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target;
+  if(f.classList.contains("add-row")){
+    const time = f.querySelector('input[type=time]').value;
+    const text = f.querySelector('input[type=text]').value.trim();
+    if(!text) return;
+    weekTasks(f.dataset.week).push({
+      id: uid(), day: Number(f.dataset.day), time, text, done:false
+    });
+    saveState(); render();
+  }else if(f.id === "gAdd"){
+    const name = f.querySelector(".name").value.trim();
+    const cat = f.querySelector(".cat").value.trim();
+    if(!name) return;
+    state.groceries.push({ id: uid(), name, cat, have:false });
+    saveState(); render();
+  }
+});
+
+let notesTimer = null;
+main.addEventListener("input", e => {
+  if(e.target.id !== "weekNotes") return;
+  const k = e.target.dataset.week;
+  const v = e.target.value;
+  if(v) state.notes[k] = v; else delete state.notes[k];
+  clearTimeout(notesTimer);
+  notesTimer = setTimeout(saveState, 400);
+});
+main.addEventListener("focusout", e => {
+  if(e.target.id === "weekNotes") saveState();
+});
+
+/* ---------- export / import ---------- */
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "tygodnik-"+isoDate(new Date())+".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById("importFile").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const data = JSON.parse(r.result);
+      if(!data.weeks || !data.groceries) throw new Error("bad shape");
+      if(!data.notes) data.notes = {};
+      state = data;
+      saveState(); render();
+    }catch(err){
+      alert("That file does not look like a Tygodnik export.");
+    }
+  };
+  r.readAsText(file);
+  e.target.value = "";
+});
+
+render();
+</script>
+</body>
+</html>
