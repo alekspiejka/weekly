@@ -6,7 +6,7 @@ a tiny planner for basic matters of life ✦
 
 - **this week / next week** ⟡ plans with optional times; tick them off when done
 - **reading** ⟡ links you saved; tap a title and the article opens in a new tab
-- **finances** ⟡ a standing list of your fixed costs, added up per currency (eur, pln, whatever)
+- **finances** ⟡ a standing list of your fixed costs, added up per currency
 - **groceries** ⟡ a running list; cross out what you have, uncross when it runs out
 - **archive** ⟡ past weeks tuck themselves away here on their own
 
@@ -20,13 +20,6 @@ there are two layers:
 
 - **the code** is `index.html`. github keeps it, pages serves it.
 - **the data** is everything you type. it lives in the browser on each device (in localStorage), and never leaves. nothing is sent anywhere
-
-little consequences worth knowing:
-
-- updating the code never touches your data ✧
-- phone and pc don't share data — each keeps its own copy
-- renaming the repo or your username strands the old data at the old address
-- if you don't open it for weeks, the phone might clear its storage — so back up
 
 ## backup & moving between devices ₍ᐢ. .ᐢ₎
 
