@@ -13,7 +13,7 @@ a tiny planner for basic matters of life ✦
 ## running it ⋆｡°✩
 
 open `index.html` in any browser and it works. for the phone it needs to be
-served from a http://alekspiejka.github.io/weekly
+served from http://alekspiejka.github.io/weekly
 
 ## how the stuff is stored ⊹₊⟡
 there are two layers:
