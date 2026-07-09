@@ -25,8 +25,7 @@ there are two layers:
 
 the footer has **export data** and **import data**.
 
-- **export** saves everything to a json file → pop it in icloud drive.
-  this is your only real backup.
+- **export** saves everything to a json file. this is your only real backup.
 - **import** *replaces* everything (it doesn't merge).
 
 ## the little gestures ⋆˚꩜｡ ✧
