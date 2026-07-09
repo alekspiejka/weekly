@@ -204,6 +204,70 @@
   .g-add .name{flex:2 1 180px;min-width:0}
   .g-add .cat{flex:1 1 130px;min-width:0}
 
+  /* ---------- reading ---------- */
+  .read-cat{
+    background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
+    padding:6px 16px;margin-bottom:14px;
+  }
+  ul.read-list{list-style:none}
+  .read-item{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 0;border-bottom:1px solid var(--hair);
+  }
+  .read-item:last-child{border-bottom:none}
+  .read-link{
+    flex:1;min-width:0;font-size:15px;color:var(--blue);
+    text-decoration:none;overflow-wrap:anywhere;
+  }
+  .read-link:hover{text-decoration:underline;text-underline-offset:2px}
+  .read-item.done .read-link{color:var(--done);text-decoration:line-through;text-decoration-color:var(--done)}
+  .edit-btn{
+    flex:0 0 auto;color:#4A4F59;font-size:14px;line-height:1;padding:2px 5px;border-radius:6px;
+  }
+  .edit-btn:hover{color:var(--ink);background:var(--hair)}
+  .read-add{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;align-items:center}
+  .read-add input{
+    border:none;border-radius:10px;background:var(--card);box-shadow:var(--shadow);
+    padding:9px 12px;font-size:14px;
+  }
+  .read-add .rtitle{flex:1 1 150px;min-width:0}
+  .read-add .rurl{flex:2 1 200px;min-width:0}
+  .read-edit .etitle{flex:1 1 120px}
+  .read-edit .eurl{flex:2 1 160px;min-width:0}
+
+  /* ---------- finances ---------- */
+  .fin-totals{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 20px}
+  .fin-total{
+    background:var(--card);border-radius:14px;box-shadow:var(--shadow);
+    padding:12px 16px;display:flex;flex-direction:column;gap:2px;min-width:110px;
+  }
+  .fin-total .ft-amt{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+  .fin-total .ft-cur{font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--blue)}
+  .fin-cat{
+    background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
+    padding:14px 16px 10px;margin-bottom:14px;
+  }
+  .fin-cat h2{font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--muted);padding-bottom:6px}
+  ul.fin-list{list-style:none}
+  .fin-item{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 0;border-bottom:1px solid var(--hair);
+  }
+  .fin-item:last-child{border-bottom:none}
+  .fin-desc{flex:1;text-align:left;padding:0;font-size:15px;overflow-wrap:anywhere}
+  .fin-amt{flex:0 0 auto;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+  .fin-item.paused .fin-desc,.fin-item.paused .fin-amt{color:var(--done);text-decoration:line-through;text-decoration-color:var(--done)}
+  .fin-add{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;align-items:center}
+  .fin-add input{
+    border:none;border-radius:10px;background:var(--card);box-shadow:var(--shadow);
+    padding:9px 12px;font-size:14px;
+  }
+  .fin-add .desc{flex:2 1 150px;min-width:0}
+  .fin-add .amt{flex:1 1 90px;min-width:0;text-align:right;font-variant-numeric:tabular-nums}
+  .fin-add .cur{flex:0 1 76px;min-width:0;text-transform:uppercase}
+  .edit-row .eamt{flex:0 1 84px;text-align:right}
+  .edit-row .ecur{flex:0 1 66px;text-transform:uppercase}
+
   /* ---------- archive ---------- */
   .arch-empty{color:var(--muted);font-size:14px;padding:0 2px}
   details.arch{
@@ -263,6 +327,8 @@
   <div class="nav-inner" role="tablist">
     <button class="tab" role="tab" data-view="this" aria-selected="true">this week</button>
     <button class="tab" role="tab" data-view="next" aria-selected="false">next week</button>
+    <button class="tab" role="tab" data-view="reading" aria-selected="false">reading</button>
+    <button class="tab" role="tab" data-view="finances" aria-selected="false">finances</button>
     <button class="tab" role="tab" data-view="groceries" aria-selected="false">groceries</button>
     <button class="tab" role="tab" data-view="archive" aria-selected="false">archive</button>
   </div>
@@ -298,9 +364,19 @@ function saveState(){
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }
   catch(e){ memoryStore = state; }
 }
-function freshState(){ return { weeks:{}, groceries:[], notes:{} }; }
+function freshState(){ return { weeks:{}, groceries:[], notes:{}, finances:{} }; }
 let state = loadState();
 if(!state.notes) state.notes = {};
+if(!state.finances) state.finances = [];
+if(!state.reading) state.reading = [];
+// finances is a single persistent list; migrate old week-keyed shape if present
+if(!Array.isArray(state.finances)){
+  const flat = [];
+  for(const k in state.finances){ for(const e of (state.finances[k]||[])) flat.push(e); }
+  state.finances = flat;
+}
+// backfill active flag for entries created before it existed
+for(const e of state.finances){ if(e.active === undefined) e.active = true; }
 
 /* ---------- dates ---------- */
 function pad(n){ return String(n).padStart(2,"0"); }
@@ -346,6 +422,24 @@ const DECOS = [
 ];
 const CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><polyline points="3 8.5 6.5 12 13 4.5"/></svg>';
 
+const CUR_SYM = {EUR:"€",PLN:"zł",USD:"$",GBP:"£",CHF:"CHF",CZK:"Kč",NOK:"kr",SEK:"kr",DKK:"kr",JPY:"¥"};
+function curSym(c){ return CUR_SYM[c] || ""; }
+function fmtAmt(n){ return (Math.round(n*100)/100).toFixed(2); }
+// force a pasted link to an absolute http(s) url; reject other schemes (e.g. javascript:)
+function normUrl(u){
+  u = (u||"").trim();
+  if(!u) return "";
+  if(/^https?:\/\//i.test(u)) return u;
+  if(/^[a-z][a-z0-9+.\-]*:/i.test(u)) return "";  // some non-http scheme -> reject
+  return "https://" + u;
+}
+// totals per currency over active entries -> [ [cur, sum], ... ] sorted by cur
+function finTotals(entries){
+  const m = {};
+  for(const e of entries){ if(e.active===false) continue; m[e.cur] = (m[e.cur]||0) + e.amount; }
+  return Object.keys(m).sort().map(c => [c, m[c]]);
+}
+
 function esc(s){
   return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
@@ -356,6 +450,8 @@ function render(){
   if(view === "this")      renderWeek(0);
   else if(view === "next") renderWeek(1);
   else if(view === "groceries") renderGroceries();
+  else if(view === "reading") renderReading();
+  else if(view === "finances") renderFinances();
   else renderArchive();
   window.scrollTo(0,0);
 }
@@ -484,6 +580,128 @@ function renderGroceries(){
   main.innerHTML = html;
 }
 
+function renderReading(){
+  const items = state.reading;
+  let html = `
+    <header class="masthead">
+      <div class="kicker">to read</div>
+      <h1>reading</h1>
+    </header>
+    <p class="g-note">Paste a link and give it a title. Tap the title to open it in a new tab; check it off once you've read it.</p>`;
+
+  if(items.length){
+    html += `<section class="read-cat"><ul class="read-list">`;
+    for(const it of items){
+      if(editing && editing.kind==="read" && editing.id===it.id){
+        html += `
+        <li class="read-item">
+          <form class="edit-row read-edit" data-id="${it.id}">
+            <input type="text" class="etitle" value="${esc(it.title)}" placeholder="title" aria-label="title">
+            <input type="url" class="eurl" value="${esc(it.url)}" placeholder="https://…" aria-label="link" required>
+            <button class="save" type="submit" aria-label="save">${CHECK}</button>
+            <button class="cancel" type="button" data-act="cancel-edit" aria-label="cancel">&times;</button>
+          </form>
+        </li>`;
+        continue;
+      }
+      const label = it.title || it.url;
+      html += `
+        <li class="read-item ${it.done?"done":""}">
+          <button class="check" data-act="rtoggle" data-id="${it.id}"
+                  role="checkbox" aria-checked="${!!it.done}"
+                  aria-label="${it.done?"mark unread":"mark read"}">${CHECK}</button>
+          <a class="read-link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>
+          <button class="edit-btn" data-act="edit-read" data-id="${it.id}" aria-label="edit">✎</button>
+          <button class="del" data-act="rdelete" data-id="${it.id}" aria-label="delete">&times;</button>
+        </li>`;
+    }
+    html += `</ul></section>`;
+  } else {
+    html += `<p class="arch-empty">nothing saved to read yet.</p>`;
+  }
+
+  html += `
+    <form class="read-add" id="readAdd">
+      <input type="text" class="rtitle" placeholder="title (e.g. article name)" aria-label="title">
+      <input type="url" class="rurl" placeholder="paste link (https://…)" aria-label="link" required>
+      <button class="add" type="submit" aria-label="add">+</button>
+    </form>`;
+  main.innerHTML = html;
+}
+
+function renderFinances(){
+  const entries = state.finances;
+  const totals = finTotals(entries);
+  const usedCurs = [...new Set(entries.map(e=>e.cur))];
+  const catList = [...new Set(["EUR","PLN",...usedCurs])];
+  const lastCur = entries.length ? entries[entries.length-1].cur : "EUR";
+  // currencies to show as sections: every currency that has entries, even if fully paused
+  const allCurs = [...new Set(entries.map(e=>e.cur))].sort();
+
+  let html = `
+    <header class="masthead">
+      <div class="kicker">fixed spending</div>
+      <h1>finances</h1>
+    </header>
+    <p class="g-note">A standing list of your regular costs. Cross one out to pause it (it stops counting) and uncross it when it's back.</p>`;
+
+  if(totals.length){
+    html += `<div class="fin-totals">`;
+    for(const [cur,sum] of totals){
+      html += `<div class="fin-total">
+        <span class="ft-amt">${curSym(cur)}${fmtAmt(sum)}</span>
+        <span class="ft-cur">${esc(cur)}</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  for(const cur of allCurs){
+    const rows = entries.filter(e => e.cur === cur);
+    html += `<section class="fin-cat"><h2>${esc(cur)}</h2><ul class="fin-list">`;
+    for(const e of rows){
+      if(editing && editing.kind==="fin" && editing.id===e.id){
+        html += `
+        <li class="fin-item">
+          <form class="edit-row fin-edit" data-id="${e.id}">
+            <input type="text" class="edesc" value="${esc(e.desc)}" placeholder="what for" aria-label="description">
+            <input type="number" step="0.01" inputmode="decimal" class="eamt" value="${e.amount}" aria-label="amount" required>
+            <input type="text" class="ecur" value="${esc(e.cur)}" list="curList" aria-label="currency" required>
+            <button class="save" type="submit" aria-label="save">${CHECK}</button>
+            <button class="cancel" type="button" data-act="cancel-edit" aria-label="cancel">&times;</button>
+          </form>
+        </li>`;
+        continue;
+      }
+      const paused = e.active === false;
+      html += `
+        <li class="fin-item ${paused?"paused":""}">
+          <button class="check" data-act="fintoggle" data-id="${e.id}"
+                  role="checkbox" aria-checked="${!paused}"
+                  aria-label="${paused?"resume":"pause"}">${CHECK}</button>
+          <button class="fin-desc" data-act="edit-fin" data-id="${e.id}" title="tap to edit">${esc(e.desc||"—")}</button>
+          <span class="fin-amt">${curSym(cur)}${fmtAmt(e.amount)}</span>
+          <button class="del" data-act="findelete" data-id="${e.id}" aria-label="delete">&times;</button>
+        </li>`;
+    }
+    html += `</ul></section>`;
+  }
+
+  if(!entries.length){
+    html += `<p class="arch-empty">nothing here yet. add your regular costs below.</p>`;
+  }
+
+  html += `
+    <datalist id="curList">${catList.map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
+    <form class="fin-add" id="finAdd">
+      <input type="text" class="desc" placeholder="what for (optional)" aria-label="description">
+      <input type="number" step="0.01" inputmode="decimal" class="amt" placeholder="0.00" aria-label="amount" required>
+      <input type="text" class="cur" list="curList" value="${esc(lastCur)}" aria-label="currency" required>
+      <button class="add" type="submit" aria-label="add">+</button>
+    </form>`;
+  main.innerHTML = html;
+}
+
 function renderArchive(){
   const currentKey = isoDate(mondayOf(new Date()));
   const past = [...new Set([...Object.keys(state.weeks), ...Object.keys(state.notes)])]
@@ -551,8 +769,42 @@ main.addEventListener("click", e => {
     if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
     return;
   }
+  if(act === "edit-fin"){
+    editing = {kind:"fin", id:b.dataset.id};
+    render();
+    const inp = main.querySelector('.fin-edit .edesc');
+    if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    return;
+  }
   if(act === "cancel-edit"){
     editing = null; render(); return;
+  }
+  if(act === "edit-read"){
+    editing = {kind:"read", id:b.dataset.id};
+    render();
+    const inp = main.querySelector('.read-edit .etitle');
+    if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    return;
+  }
+  if(act === "rtoggle"){
+    const it = state.reading.find(x => x.id === b.dataset.id);
+    if(it){ it.done = !it.done; saveState(); render(); }
+    return;
+  }
+  if(act === "rdelete"){
+    const i = state.reading.findIndex(x => x.id === b.dataset.id);
+    if(i >= 0){ state.reading.splice(i,1); saveState(); render(); }
+    return;
+  }
+  if(act === "fintoggle"){
+    const e2 = state.finances.find(x => x.id === b.dataset.id);
+    if(e2){ e2.active = e2.active === false ? true : false; saveState(); render(); }
+    return;
+  }
+  if(act === "findelete"){
+    const i = state.finances.findIndex(x => x.id === b.dataset.id);
+    if(i >= 0){ state.finances.splice(i,1); saveState(); render(); }
+    return;
   }
   if(act === "toggle" || act === "delete"){
     const arr = weekTasks(b.dataset.week);
@@ -574,6 +826,25 @@ main.addEventListener("submit", e => {
   e.preventDefault();
   const f = e.target;
   if(f.classList.contains("edit-row")){
+    if(f.classList.contains("read-edit")){
+      const it = state.reading.find(x => x.id === f.dataset.id);
+      if(it){
+        const u = normUrl(f.querySelector(".eurl").value);
+        if(u) it.url = u;
+        it.title = f.querySelector(".etitle").value.trim();
+      }
+      editing = null; saveState(); render(); return;
+    }
+    if(f.classList.contains("fin-edit")){
+      const e2 = state.finances.find(x => x.id === f.dataset.id);
+      if(e2){
+        const a = parseFloat(f.querySelector(".eamt").value);
+        if(!isNaN(a)) e2.amount = a;
+        e2.cur = (f.querySelector(".ecur").value.trim().toUpperCase()) || e2.cur;
+        e2.desc = f.querySelector(".edesc").value.trim();
+      }
+      editing = null; saveState(); render(); return;
+    }
     if(f.classList.contains("g-edit")){
       const it = state.groceries.find(g => g.id === f.dataset.id);
       if(it){
@@ -606,6 +877,19 @@ main.addEventListener("submit", e => {
     if(!name) return;
     state.groceries.push({ id: uid(), name, cat, have:false });
     saveState(); render();
+  }else if(f.id === "readAdd"){
+    const title = f.querySelector(".rtitle").value.trim();
+    const url = normUrl(f.querySelector(".rurl").value);
+    if(!url){ alert("Please paste a valid web link (starting with http:// or https://)."); return; }
+    state.reading.push({ id: uid(), title, url, done:false });
+    saveState(); render();
+  }else if(f.id === "finAdd"){
+    const amount = parseFloat(f.querySelector(".amt").value);
+    const cur = f.querySelector(".cur").value.trim().toUpperCase();
+    const desc = f.querySelector(".desc").value.trim();
+    if(isNaN(amount) || !cur) return;
+    state.finances.push({ id: uid(), amount, cur, desc, active:true });
+    saveState(); render();
   }
 });
 
@@ -627,7 +911,7 @@ document.getElementById("exportBtn").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "tygodnik-"+isoDate(new Date())+".json";
+  a.download = "keep-it-cute-backup-"+isoDate(new Date())+".json";
   a.click();
   URL.revokeObjectURL(a.href);
 });
@@ -640,6 +924,15 @@ document.getElementById("importFile").addEventListener("change", e => {
       const data = JSON.parse(r.result);
       if(!data.weeks || !data.groceries) throw new Error("bad shape");
       if(!data.notes) data.notes = {};
+      if(!data.reading) data.reading = [];
+      // finances: coerce old week-keyed object shape to a flat array
+      if(!data.finances) data.finances = [];
+      if(!Array.isArray(data.finances)){
+        const flat = [];
+        for(const k in data.finances){ for(const e of (data.finances[k]||[])) flat.push(e); }
+        data.finances = flat;
+      }
+      for(const e of data.finances){ if(e.active === undefined) e.active = true; }
       state = data;
       saveState(); render();
     }catch(err){
