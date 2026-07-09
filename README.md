@@ -1,6 +1,6 @@
-# keep it CUUUUuuuuuute  ꧁⎝ 𓆩༺✧༻𓆪 ⎠꧂
+# keep it cuuute  ꧁⎝ 𓆩༺✧༻𓆪 ⎠꧂
 
-a cute tiny planner for basic matters of life ✦
+a tiny planner for basic matters of life ✦
 
 ## the tabs ⋆˚꩜｡
 
