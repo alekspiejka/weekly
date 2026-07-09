@@ -327,6 +327,7 @@
   <div class="nav-inner" role="tablist">
     <button class="tab" role="tab" data-view="this" aria-selected="true">this week</button>
     <button class="tab" role="tab" data-view="next" aria-selected="false">next week</button>
+    <button class="tab" role="tab" data-view="projects" aria-selected="false">projects</button>
     <button class="tab" role="tab" data-view="reading" aria-selected="false">reading</button>
     <button class="tab" role="tab" data-view="finances" aria-selected="false">finances</button>
     <button class="tab" role="tab" data-view="groceries" aria-selected="false">groceries</button>
@@ -369,6 +370,7 @@ let state = loadState();
 if(!state.notes) state.notes = {};
 if(!state.finances) state.finances = [];
 if(!state.reading) state.reading = [];
+if(!state.projects) state.projects = [];
 // finances is a single persistent list; migrate old week-keyed shape if present
 if(!Array.isArray(state.finances)){
   const flat = [];
@@ -451,6 +453,7 @@ function render(opts){
   if(view === "this")      renderWeek(0);
   else if(view === "next") renderWeek(1);
   else if(view === "groceries") renderGroceries();
+  else if(view === "projects") renderProjects();
   else if(view === "reading") renderReading();
   else if(view === "finances") renderFinances();
   else renderArchive();
@@ -577,6 +580,59 @@ function renderGroceries(){
       <input type="text" class="cat" list="catList" placeholder="category (optional)" aria-label="Category">
       <datalist id="catList">${existing.map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
       <button class="add" type="submit" aria-label="Add">+</button>
+    </form>`;
+  main.innerHTML = html;
+}
+
+function renderProjects(){
+  const items = state.projects;
+  const projs = [];
+  for(const it of items){
+    const p = it.proj || "misc";
+    if(!projs.includes(p)) projs.push(p);
+  }
+  let html = `
+    <header class="masthead">
+      <div class="kicker">what each project needs</div>
+      <h1>projects</h1>
+    </header>
+    <p class="g-note">list what a project needs; check things off as you handle them.</p>`;
+
+  for(const p of projs){
+    html += `<section class="g-cat"><h2>${esc(p)}</h2><ul class="gitems">`;
+    for(const it of items.filter(i => (i.proj||"misc") === p)){
+      if(editing && editing.kind==="p" && editing.id===it.id){
+        html += `
+        <li class="gitem">
+          <form class="edit-row p-edit" data-id="${it.id}">
+            <input type="text" class="ename" value="${esc(it.name)}" aria-label="item" required>
+            <input type="text" class="eproj" value="${esc(it.proj||"")}" list="projList" placeholder="project" aria-label="project">
+            <button class="save" type="submit" aria-label="save">${CHECK}</button>
+            <button class="cancel" type="button" data-act="cancel-edit" aria-label="cancel">&times;</button>
+          </form>
+        </li>`;
+        continue;
+      }
+      html += `
+        <li class="gitem ${it.done?"have":""}">
+          <button class="check" data-act="ptoggle" data-id="${it.id}"
+                  role="checkbox" aria-checked="${!!it.done}"
+                  aria-label="toggle">${CHECK}</button>
+          <button class="txt" data-act="edit-p" data-id="${it.id}" title="tap to edit">${esc(it.name)}</button>
+          <button class="del" data-act="pdelete" data-id="${it.id}" aria-label="delete">&times;</button>
+        </li>`;
+    }
+    html += `</ul></section>`;
+  }
+  if(!items.length) html += `<p class="arch-empty">no projects yet. add something needed below.</p>`;
+
+  const existing = projs.filter(p => p !== "misc");
+  html += `
+    <form class="g-add" id="pAdd">
+      <input type="text" class="name" placeholder="what's needed&hellip;" aria-label="item" required>
+      <input type="text" class="proj" list="projList" placeholder="project" aria-label="project">
+      <datalist id="projList">${existing.map(p=>`<option value="${esc(p)}">`).join("")}</datalist>
+      <button class="add" type="submit" aria-label="add">+</button>
     </form>`;
   main.innerHTML = html;
 }
@@ -770,6 +826,13 @@ main.addEventListener("click", e => {
     if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
     return;
   }
+  if(act === "edit-p"){
+    editing = {kind:"p", id:b.dataset.id};
+    render();
+    const inp = main.querySelector('.p-edit .ename');
+    if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    return;
+  }
   if(act === "edit-fin"){
     editing = {kind:"fin", id:b.dataset.id};
     render();
@@ -820,6 +883,12 @@ main.addEventListener("click", e => {
     if(act === "gtoggle") state.groceries[i].have = !state.groceries[i].have;
     else state.groceries.splice(i,1);
     saveState(); render();
+  }else if(act === "ptoggle" || act === "pdelete"){
+    const i = state.projects.findIndex(x => x.id === b.dataset.id);
+    if(i < 0) return;
+    if(act === "ptoggle") state.projects[i].done = !state.projects[i].done;
+    else state.projects.splice(i,1);
+    saveState(); render();
   }
 });
 
@@ -852,13 +921,22 @@ main.addEventListener("submit", e => {
         it.name = f.querySelector(".ename").value.trim() || it.name;
         it.cat = f.querySelector(".ecat").value.trim();
       }
-    }else{
-      const arr = weekTasks(f.dataset.week);
-      const t = arr.find(x => x.id === f.dataset.id);
-      if(t){
-        t.text = f.querySelector('input[type=text]').value.trim() || t.text;
-        t.time = f.querySelector('input[type=time]').value;
+      editing = null; saveState(); render(); return;
+    }
+    if(f.classList.contains("p-edit")){
+      const it = state.projects.find(x => x.id === f.dataset.id);
+      if(it){
+        it.name = f.querySelector(".ename").value.trim() || it.name;
+        it.proj = f.querySelector(".eproj").value.trim();
       }
+      editing = null; saveState(); render(); return;
+    }
+    // otherwise it's a task edit
+    const arr = weekTasks(f.dataset.week);
+    const t = arr.find(x => x.id === f.dataset.id);
+    if(t){
+      t.text = f.querySelector('input[type=text]').value.trim() || t.text;
+      t.time = f.querySelector('input[type=time]').value;
     }
     editing = null;
     saveState(); render();
@@ -877,6 +955,12 @@ main.addEventListener("submit", e => {
     const cat = f.querySelector(".cat").value.trim();
     if(!name) return;
     state.groceries.push({ id: uid(), name, cat, have:false });
+    saveState(); render();
+  }else if(f.id === "pAdd"){
+    const name = f.querySelector(".name").value.trim();
+    const proj = f.querySelector(".proj").value.trim();
+    if(!name) return;
+    state.projects.push({ id: uid(), name, proj, done:false });
     saveState(); render();
   }else if(f.id === "readAdd"){
     const title = f.querySelector(".rtitle").value.trim();
@@ -926,6 +1010,7 @@ document.getElementById("importFile").addEventListener("change", e => {
       if(!data.weeks || !data.groceries) throw new Error("bad shape");
       if(!data.notes) data.notes = {};
       if(!data.reading) data.reading = [];
+      if(!data.projects) data.projects = [];
       // finances: coerce old week-keyed object shape to a flat array
       if(!data.finances) data.finances = [];
       if(!Array.isArray(data.finances)){

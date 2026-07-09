@@ -5,6 +5,7 @@ a tiny planner for basic matters of life ✦
 ## the tabs ⋆˚꩜｡
 
 - **this week / next week** ⟡ plans with optional times; tick them off when done
+- **projects** ⟡ what each of your projects needs; check things off as you handle them
 - **reading** ⟡ links you saved; tap a title and the article opens in a new tab
 - **finances** ⟡ a standing list of your fixed costs, added up per currency
 - **groceries** ⟡ a running list; cross out what you have, uncross when it runs out
