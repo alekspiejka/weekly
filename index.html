@@ -444,7 +444,8 @@ function esc(s){
   return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
-function render(){
+function render(opts){
+  const y = window.scrollY;
   document.querySelectorAll(".tab").forEach(t =>
     t.setAttribute("aria-selected", String(t.dataset.view === view)));
   if(view === "this")      renderWeek(0);
@@ -453,7 +454,7 @@ function render(){
   else if(view === "reading") renderReading();
   else if(view === "finances") renderFinances();
   else renderArchive();
-  window.scrollTo(0,0);
+  window.scrollTo(0, (opts && opts.top) ? 0 : y);
 }
 
 function renderWeek(offset){
@@ -748,7 +749,7 @@ function renderArchive(){
 /* ---------- events ---------- */
 document.querySelector(".nav-inner").addEventListener("click", e => {
   const t = e.target.closest(".tab");
-  if(t){ view = t.dataset.view; editing = null; render(); }
+  if(t){ view = t.dataset.view; editing = null; render({top:true}); }
 });
 
 main.addEventListener("click", e => {
