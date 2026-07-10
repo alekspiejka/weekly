@@ -29,7 +29,7 @@ the footer has **export data** and **import data**.
 - **export** saves everything to a json file. this is your only real backup.
 - **import** *replaces* everything (it doesn't merge).
 
-## the little gestures ⋆˚꩜｡ ✧
+## what can you do ⋆˚꩜｡ ✧
 
 - the round **checkbox** ⟶ ticks / crosses things off
 - tap an item's **text** ⟶ edit it in place (✓ saves, × cancels)
