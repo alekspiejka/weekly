@@ -189,6 +189,19 @@
     padding:14px 16px 10px;margin-bottom:14px;
   }
   .g-cat h2{font-size:16px;font-weight:700;padding-bottom:6px}
+  .proj-head{
+    width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    text-align:left;padding:2px 0 8px;font-size:16px;font-weight:700;
+  }
+  .proj-head .chev{color:var(--muted);font-size:12px;flex:0 0 auto}
+  .proj-head.has-desc span:first-child{border-bottom:1.5px dotted var(--blue)}
+  .proj-desc{
+    width:100%;min-height:54px;resize:vertical;
+    font:14px/1.55 var(--ui);color:var(--ink);
+    border:none;border-radius:10px;background:var(--bg);
+    padding:10px 12px;margin:0 0 10px;
+  }
+  .proj-desc::placeholder{color:var(--muted)}
   ul.gitems{list-style:none}
   .gitem{
     display:flex;align-items:center;gap:10px;
@@ -372,6 +385,7 @@ if(!state.notes) state.notes = {};
 if(!state.finances) state.finances = [];
 if(!state.reading) state.reading = [];
 if(!state.projects) state.projects = [];
+if(!state.projectDescs) state.projectDescs = {};
 // finances is a single persistent list; migrate old week-keyed shape if present
 if(!Array.isArray(state.finances)){
   const flat = [];
@@ -411,6 +425,7 @@ function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(
 const main = document.getElementById("main");
 let view = "this";
 let editing = null; // {kind:"task", week, id} or {kind:"g", id}
+let expandedProjs = new Set(); // project names whose description is open
 const DECOS = [
   "꧁⎝ 𓆩༺✧༻𓆪 ⎠꧂",
   "⋆˚꩜｡ ✧˖°",
@@ -600,7 +615,18 @@ function renderProjects(){
     <p class="g-note">list what a project needs; check things off as you handle them.</p>`;
 
   for(const p of projs){
-    html += `<section class="g-cat"><h2>${esc(p)}</h2><ul class="gitems">`;
+    const open = expandedProjs.has(p);
+    const desc = state.projectDescs[p] || "";
+    html += `<section class="g-cat">
+      <button class="proj-head ${desc?"has-desc":""}" data-act="ptoggledesc" data-proj="${esc(p)}" aria-expanded="${open}">
+        <span>${esc(p)}</span>
+        <span class="chev">${open?"▾":"▸"}</span>
+      </button>`;
+    if(open){
+      html += `<textarea class="proj-desc" data-proj="${esc(p)}" aria-label="project description"
+        placeholder="describe this project&hellip;">${esc(desc)}</textarea>`;
+    }
+    html += `<ul class="gitems">`;
     for(const it of items.filter(i => (i.proj||"misc") === p)){
       if(editing && editing.kind==="p" && editing.id===it.id){
         html += `
@@ -827,6 +853,12 @@ main.addEventListener("click", e => {
     if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
     return;
   }
+  if(act === "ptoggledesc"){
+    const p = b.dataset.proj;
+    if(expandedProjs.has(p)) expandedProjs.delete(p); else expandedProjs.add(p);
+    render();
+    return;
+  }
   if(act === "edit-p"){
     editing = {kind:"p", id:b.dataset.id};
     render();
@@ -981,15 +1013,24 @@ main.addEventListener("submit", e => {
 
 let notesTimer = null;
 main.addEventListener("input", e => {
-  if(e.target.id !== "weekNotes") return;
-  const k = e.target.dataset.week;
-  const v = e.target.value;
-  if(v) state.notes[k] = v; else delete state.notes[k];
-  clearTimeout(notesTimer);
-  notesTimer = setTimeout(saveState, 400);
+  if(e.target.id === "weekNotes"){
+    const k = e.target.dataset.week;
+    const v = e.target.value;
+    if(v) state.notes[k] = v; else delete state.notes[k];
+    clearTimeout(notesTimer);
+    notesTimer = setTimeout(saveState, 400);
+    return;
+  }
+  if(e.target.classList.contains("proj-desc")){
+    const p = e.target.dataset.proj;
+    const v = e.target.value;
+    if(v) state.projectDescs[p] = v; else delete state.projectDescs[p];
+    clearTimeout(notesTimer);
+    notesTimer = setTimeout(saveState, 400);
+  }
 });
 main.addEventListener("focusout", e => {
-  if(e.target.id === "weekNotes") saveState();
+  if(e.target.id === "weekNotes" || e.target.classList.contains("proj-desc")) saveState();
 });
 
 /* ---------- export / import ---------- */
@@ -1012,6 +1053,7 @@ document.getElementById("importFile").addEventListener("change", e => {
       if(!data.notes) data.notes = {};
       if(!data.reading) data.reading = [];
       if(!data.projects) data.projects = [];
+      if(!data.projectDescs) data.projectDescs = {};
       // finances: coerce old week-keyed object shape to a flat array
       if(!data.finances) data.finances = [];
       if(!Array.isArray(data.finances)){
