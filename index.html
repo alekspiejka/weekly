@@ -263,12 +263,20 @@
     color:var(--blue);background:var(--blue-soft);padding:2px 8px;border-radius:999px;white-space:nowrap;
   }
   .bchip.planned{color:var(--muted);background:var(--hair)}
+  button.bchip{cursor:pointer;line-height:inherit}
+  button.bchip.planned:hover{color:var(--ink)}
+  .bchip.reading{color:#fff;background:var(--blue)}
   .bwhen{flex:0 0 auto;display:flex;gap:4px}
   select.bchip{
     -webkit-appearance:none;appearance:none;border:none;font-family:inherit;
     color-scheme:dark;cursor:pointer;padding:3px 8px;text-align:center;
   }
-  .bwhen.nodate select.bchip{color:#D9A05E;background:#3A2E1E}
+  input.bchip.byear{
+    border:none;font-family:inherit;width:5.2em;padding:3px 8px;text-align:center;
+  }
+  input.bchip.byear::placeholder{color:inherit;opacity:.7}
+  .bwhen.nodate .bchip{color:#D9A05E;background:#3A2E1E}
+  .read-add .byear{flex:0 0 80px;min-width:0;text-align:center}
   .read-add select{
     -webkit-appearance:none;appearance:none;color-scheme:dark;
     border:none;border-radius:10px;background:var(--card);box-shadow:var(--shadow);
@@ -600,23 +608,18 @@ function renderProjects(){
 // book dates are "YYYY-MM", or just "YYYY" when the month is unknown
 function monthYearSelects(cls, date, id){
   const [y, m] = (date||"").split("-");
-  const thisYear = new Date().getFullYear();
-  const years = [];
-  for(let yr = thisYear; yr >= 1950; yr--) years.push(String(yr));
-  if(y && !years.includes(y)) years.unshift(y);
   const idAttr = id ? ` data-id="${id}"` : "";
   return `
     <select class="${cls} bmonth"${idAttr} aria-label="month read">
       <option value="">month</option>
       ${MONTHS.map((n,i) => `<option value="${pad(i+1)}" ${m===pad(i+1)?"selected":""}>${n}</option>`).join("")}
     </select>
-    <select class="${cls} byear"${idAttr} aria-label="year read">
-      <option value="">year</option>
-      ${years.map(yr => `<option ${y===yr?"selected":""}>${yr}</option>`).join("")}
-    </select>`;
+    <input type="text" class="${cls} byear"${idAttr} value="${esc(y||"")}" placeholder="year"
+      inputmode="numeric" maxlength="4" pattern="[0-9]{4}" aria-label="year read">`;
 }
 function readMonthYear(root){
-  const y = root.querySelector(".byear").value;
+  const y = root.querySelector(".byear").value.trim();
+  if(y && !/^\d{4}$/.test(y)) return null; // not a 4-digit year
   const m = root.querySelector(".bmonth").value;
   return y ? (m ? y+"-"+m : y) : "";
 }
@@ -631,11 +634,12 @@ function renderReading(){
 
   /* --- books --- */
   const books = state.books;
-  const planned = books.filter(b => b.status !== "read");
+  const reading = books.filter(b => b.status === "reading");
+  const planned = books.filter(b => b.status !== "read" && b.status !== "reading");
   const read = books.filter(b => b.status === "read")
     .sort((a,b) => (b.date||"9999").localeCompare(a.date||"9999"));
-  html += `<h2 class="sec-h">books <span class="count">${read.length} read · ${planned.length} planned</span></h2>
-    <p class="g-note" style="margin-top:0">check a book off when you finish it, then pick the month and year you read it (the month is optional).</p>`;
+  html += `<h2 class="sec-h">books <span class="count">${reading.length} reading · ${planned.length} planned · ${read.length} read</span></h2>
+    <p class="g-note" style="margin-top:0">tap <em>planned</em> to switch a book to <em>reading</em>. check it off when you finish it, then pick the month and type the year (the month is optional).</p>`;
 
   const bookRow = it => {
     if(editing && editing.kind==="book" && editing.id===it.id){
@@ -657,13 +661,15 @@ function renderReading(){
           <button class="book-title" data-act="edit-book" data-id="${it.id}" title="tap to edit">${esc(it.title)}</button>
           ${isRead
             ? `<span class="bwhen ${it.date?"":"nodate"}">${monthYearSelects("bchip bdate-inline", it.date, it.id)}</span>`
-            : `<span class="bchip planned">planned</span>`}
+            : `<button class="bchip ${it.status==="reading"?"reading":"planned"}" data-act="bstatus" data-id="${it.id}"
+                 title="tap to switch between planned and reading">${it.status==="reading"?"reading":"planned"}</button>`}
           <button class="del" data-act="bdelete" data-id="${it.id}" aria-label="delete">&times;</button>
         </li>`;
   };
 
   if(books.length){
     html += `<section class="read-cat">`;
+    if(reading.length) html += `<div class="sub-h">reading now</div><ul class="read-list">${reading.map(bookRow).join("")}</ul>`;
     if(planned.length) html += `<div class="sub-h">planned</div><ul class="read-list">${planned.map(bookRow).join("")}</ul>`;
     if(read.length) html += `<div class="sub-h">read</div><ul class="read-list">${read.map(bookRow).join("")}</ul>`;
     html += `</section>`;
@@ -830,6 +836,11 @@ main.addEventListener("click", e => {
     if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
     return;
   }
+  if(act === "bstatus"){
+    const it = state.books.find(x => x.id === b.dataset.id);
+    if(it){ it.status = it.status === "reading" ? "planned" : "reading"; saveState(); render(); }
+    return;
+  }
   if(act === "btoggle"){
     const it = state.books.find(x => x.id === b.dataset.id);
     if(it){
@@ -969,6 +980,7 @@ main.addEventListener("submit", e => {
   }else if(f.id === "bookAdd"){
     const title = f.querySelector(".btitle").value.trim();
     const date = readMonthYear(f);
+    if(date === null){ alert("Please type the year as 4 digits, e.g. 2024."); return; }
     if(!title) return;
     state.books.push({ id: uid(), title, status: date ? "read" : "planned", date });
     saveState(); render();
@@ -1014,11 +1026,16 @@ main.addEventListener("change", e => {
   if(e.target.classList.contains("bdate-inline")){
     const it = state.books.find(x => x.id === e.target.dataset.id);
     if(!it) return;
-    it.date = readMonthYear(e.target.closest(".bwhen"));
+    const d = readMonthYear(e.target.closest(".bwhen"));
+    if(d === null){ alert("Please type the year as 4 digits, e.g. 2024."); render(); return; }
+    it.date = d;
     saveState();
     // keep a half-picked month on screen until a year is chosen too
     if(it.date || e.target.classList.contains("byear")) render();
   }
+});
+main.addEventListener("keydown", e => {
+  if(e.key === "Enter" && e.target.classList.contains("bdate-inline")){ e.preventDefault(); e.target.blur(); }
 });
 main.addEventListener("focusout", e => {
   if(e.target.id === "weekNotes" || e.target.classList.contains("proj-desc")) saveState();
