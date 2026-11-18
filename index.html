@@ -263,15 +263,17 @@
     color:var(--blue);background:var(--blue-soft);padding:2px 8px;border-radius:999px;white-space:nowrap;
   }
   .bchip.planned{color:var(--muted);background:var(--hair)}
-  input.bdate-inline{
-    border:none;font-family:inherit;color-scheme:dark;cursor:pointer;
-    padding:3px 8px;max-width:150px;
+  .bwhen{flex:0 0 auto;display:flex;gap:4px}
+  select.bchip{
+    -webkit-appearance:none;appearance:none;border:none;font-family:inherit;
+    color-scheme:dark;cursor:pointer;padding:3px 8px;text-align:center;
   }
-  input.bdate-inline.nodate{color:#D9A05E;background:#3A2E1E}
-  .read-add input[type=date],.edit-row input[type=date]{
-    flex:0 1 150px;min-width:0;color-scheme:dark;
+  .bwhen.nodate select.bchip{color:#D9A05E;background:#3A2E1E}
+  .read-add select{
+    -webkit-appearance:none;appearance:none;color-scheme:dark;
+    border:none;border-radius:10px;background:var(--card);box-shadow:var(--shadow);
+    padding:9px 12px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer;
   }
-  .edit-row input[type=date]{border:none;border-radius:10px;background:var(--bg);padding:8px 8px;font-size:13px}
   .read-add .btitle{flex:2 1 180px;min-width:0}
   .book-edit .etitle{flex:1 1 120px;min-width:0}
 
@@ -377,6 +379,7 @@ if(!state.notes) state.notes = {};
 if(!state.finances) state.finances = [];
 if(!state.reading) state.reading = [];
 if(!state.books) state.books = [];
+for(const b of state.books){ b.date = (b.date||"").slice(0,7); }
 if(!state.admin) state.admin = [];
 if(!state.projects) state.projects = [];
 if(!state.projectDescs) state.projectDescs = {};
@@ -594,6 +597,30 @@ function renderProjects(){
   main.innerHTML = html;
 }
 
+// book dates are "YYYY-MM", or just "YYYY" when the month is unknown
+function monthYearSelects(cls, date, id){
+  const [y, m] = (date||"").split("-");
+  const thisYear = new Date().getFullYear();
+  const years = [];
+  for(let yr = thisYear; yr >= 1950; yr--) years.push(String(yr));
+  if(y && !years.includes(y)) years.unshift(y);
+  const idAttr = id ? ` data-id="${id}"` : "";
+  return `
+    <select class="${cls} bmonth"${idAttr} aria-label="month read">
+      <option value="">month</option>
+      ${MONTHS.map((n,i) => `<option value="${pad(i+1)}" ${m===pad(i+1)?"selected":""}>${n}</option>`).join("")}
+    </select>
+    <select class="${cls} byear"${idAttr} aria-label="year read">
+      <option value="">year</option>
+      ${years.map(yr => `<option ${y===yr?"selected":""}>${yr}</option>`).join("")}
+    </select>`;
+}
+function readMonthYear(root){
+  const y = root.querySelector(".byear").value;
+  const m = root.querySelector(".bmonth").value;
+  return y ? (m ? y+"-"+m : y) : "";
+}
+
 function renderReading(){
   const items = state.reading;
   let html = `
@@ -608,7 +635,7 @@ function renderReading(){
   const read = books.filter(b => b.status === "read")
     .sort((a,b) => (b.date||"9999").localeCompare(a.date||"9999"));
   html += `<h2 class="sec-h">books <span class="count">${read.length} read · ${planned.length} planned</span></h2>
-    <p class="g-note" style="margin-top:0">check a book off when you finish it, then pick the date you read it (tap the date to change it any time).</p>`;
+    <p class="g-note" style="margin-top:0">check a book off when you finish it, then pick the month and year you read it (the month is optional).</p>`;
 
   const bookRow = it => {
     if(editing && editing.kind==="book" && editing.id===it.id){
@@ -616,7 +643,6 @@ function renderReading(){
         <li class="read-item">
           <form class="edit-row book-edit" data-id="${it.id}">
             <input type="text" class="etitle" value="${esc(it.title)}" aria-label="title" required>
-            <input type="date" class="edate" value="${esc(it.date||"")}" aria-label="date read (empty = planned)">
             <button class="save" type="submit" aria-label="save">${CHECK}</button>
             <button class="cancel" type="button" data-act="cancel-edit" aria-label="cancel">&times;</button>
           </form>
@@ -630,7 +656,7 @@ function renderReading(){
                   aria-label="${isRead?"mark planned":"mark read"}">${CHECK}</button>
           <button class="book-title" data-act="edit-book" data-id="${it.id}" title="tap to edit">${esc(it.title)}</button>
           ${isRead
-            ? `<input type="date" class="bchip bdate-inline ${it.date?"":"nodate"}" data-id="${it.id}" value="${esc(it.date||"")}" aria-label="date read" title="date you read it">`
+            ? `<span class="bwhen ${it.date?"":"nodate"}">${monthYearSelects("bchip bdate-inline", it.date, it.id)}</span>`
             : `<span class="bchip planned">planned</span>`}
           <button class="del" data-act="bdelete" data-id="${it.id}" aria-label="delete">&times;</button>
         </li>`;
@@ -647,7 +673,7 @@ function renderReading(){
   html += `
     <form class="read-add" id="bookAdd">
       <input type="text" class="btitle" placeholder="book title&hellip;" aria-label="book title" required>
-      <input type="date" class="bdate" aria-label="date read (leave empty if planned)" title="date read (leave empty if planned)">
+      ${monthYearSelects("bnew", "", "")}
       <button class="add" type="submit" aria-label="add book">+</button>
     </form>`;
 
@@ -811,8 +837,8 @@ main.addEventListener("click", e => {
       if(it.status !== "read") it.date = "";
       saveState(); render();
       if(it.status === "read"){
-        const inp = main.querySelector(`.bdate-inline[data-id="${it.id}"]`);
-        if(inp){ inp.focus(); try{ inp.showPicker(); }catch(_){} }
+        const sel = main.querySelector(`.bdate-inline.bmonth[data-id="${it.id}"]`);
+        if(sel) sel.focus();
       }
     }
     return;
@@ -910,8 +936,6 @@ main.addEventListener("submit", e => {
       const it = state.books.find(x => x.id === f.dataset.id);
       if(it){
         it.title = f.querySelector(".etitle").value.trim() || it.title;
-        it.date = f.querySelector(".edate").value;
-        it.status = it.date ? "read" : "planned";
       }
       editing = null; saveState(); render(); return;
     }
@@ -944,7 +968,7 @@ main.addEventListener("submit", e => {
     saveState(); render();
   }else if(f.id === "bookAdd"){
     const title = f.querySelector(".btitle").value.trim();
-    const date = f.querySelector(".bdate").value;
+    const date = readMonthYear(f);
     if(!title) return;
     state.books.push({ id: uid(), title, status: date ? "read" : "planned", date });
     saveState(); render();
@@ -989,7 +1013,11 @@ main.addEventListener("input", e => {
 main.addEventListener("change", e => {
   if(e.target.classList.contains("bdate-inline")){
     const it = state.books.find(x => x.id === e.target.dataset.id);
-    if(it){ it.date = e.target.value; saveState(); render(); }
+    if(!it) return;
+    it.date = readMonthYear(e.target.closest(".bwhen"));
+    saveState();
+    // keep a half-picked month on screen until a year is chosen too
+    if(it.date || e.target.classList.contains("byear")) render();
   }
 });
 main.addEventListener("focusout", e => {
@@ -1016,6 +1044,7 @@ document.getElementById("importFile").addEventListener("change", e => {
       if(!data.notes) data.notes = {};
       if(!data.reading) data.reading = [];
       if(!data.books) data.books = [];
+      for(const b of data.books){ b.date = (b.date||"").slice(0,7); }
       if(!data.admin) data.admin = [];
       if(!data.projects) data.projects = [];
       if(!data.projectDescs) data.projectDescs = {};
