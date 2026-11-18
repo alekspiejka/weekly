@@ -7,8 +7,8 @@ a tiny planner for basic matters of life ✦
 - **this week / next week** ⟡ plans with optional times; tick them off when done
 - **projects** ⟡ what each of your projects needs; check things off as you handle them
 - **reading** ⟡ two parts:
-  - *articles*: links you saved; tap a title and the article opens in a new tab
   - *books*: titles marked planned or read, with the date you finished them
+  - *articles*: links you saved; tap a title and the article opens in a new tab
 - **life admin** ⟡ a general to-do list (doctor's visits, laundry, groceries, the dentist…); tick things off and they move to *done*
 - **archive** ⟡ past weeks tuck themselves away here on their own
 

@@ -602,46 +602,6 @@ function renderReading(){
       <h1>reading</h1>
     </header>`;
 
-  /* --- articles --- */
-  html += `<h2 class="sec-h">articles</h2>
-    <p class="g-note" style="margin-top:0">paste a link and give it a title. tap the title to open it in a new tab; check it off once you've read it.</p>`;
-  if(items.length){
-    html += `<section class="read-cat"><ul class="read-list">`;
-    for(const it of items){
-      if(editing && editing.kind==="read" && editing.id===it.id){
-        html += `
-        <li class="read-item">
-          <form class="edit-row read-edit" data-id="${it.id}">
-            <input type="text" class="etitle" value="${esc(it.title)}" placeholder="title" aria-label="title">
-            <input type="url" class="eurl" value="${esc(it.url)}" placeholder="https://…" aria-label="link" required>
-            <button class="save" type="submit" aria-label="save">${CHECK}</button>
-            <button class="cancel" type="button" data-act="cancel-edit" aria-label="cancel">&times;</button>
-          </form>
-        </li>`;
-        continue;
-      }
-      const label = it.title || it.url;
-      html += `
-        <li class="read-item ${it.done?"done":""}">
-          <button class="check" data-act="rtoggle" data-id="${it.id}"
-                  role="checkbox" aria-checked="${!!it.done}"
-                  aria-label="${it.done?"mark unread":"mark read"}">${CHECK}</button>
-          <a class="read-link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>
-          <button class="edit-btn" data-act="edit-read" data-id="${it.id}" aria-label="edit">✎</button>
-          <button class="del" data-act="rdelete" data-id="${it.id}" aria-label="delete">&times;</button>
-        </li>`;
-    }
-    html += `</ul></section>`;
-  } else {
-    html += `<p class="arch-empty">nothing saved to read yet.</p>`;
-  }
-  html += `
-    <form class="read-add" id="readAdd">
-      <input type="text" class="rtitle" placeholder="title (e.g. article name)" aria-label="title">
-      <input type="url" class="rurl" placeholder="paste link (https://…)" aria-label="link" required>
-      <button class="add" type="submit" aria-label="add">+</button>
-    </form>`;
-
   /* --- books --- */
   const books = state.books;
   const planned = books.filter(b => b.status !== "read");
@@ -689,6 +649,46 @@ function renderReading(){
       <input type="text" class="btitle" placeholder="book title&hellip;" aria-label="book title" required>
       <input type="date" class="bdate" aria-label="date read (leave empty if planned)" title="date read (leave empty if planned)">
       <button class="add" type="submit" aria-label="add book">+</button>
+    </form>`;
+
+  /* --- articles --- */
+  html += `<h2 class="sec-h">articles</h2>
+    <p class="g-note" style="margin-top:0">paste a link and give it a title. tap the title to open it in a new tab; check it off once you've read it.</p>`;
+  if(items.length){
+    html += `<section class="read-cat"><ul class="read-list">`;
+    for(const it of items){
+      if(editing && editing.kind==="read" && editing.id===it.id){
+        html += `
+        <li class="read-item">
+          <form class="edit-row read-edit" data-id="${it.id}">
+            <input type="text" class="etitle" value="${esc(it.title)}" placeholder="title" aria-label="title">
+            <input type="url" class="eurl" value="${esc(it.url)}" placeholder="https://…" aria-label="link" required>
+            <button class="save" type="submit" aria-label="save">${CHECK}</button>
+            <button class="cancel" type="button" data-act="cancel-edit" aria-label="cancel">&times;</button>
+          </form>
+        </li>`;
+        continue;
+      }
+      const label = it.title || it.url;
+      html += `
+        <li class="read-item ${it.done?"done":""}">
+          <button class="check" data-act="rtoggle" data-id="${it.id}"
+                  role="checkbox" aria-checked="${!!it.done}"
+                  aria-label="${it.done?"mark unread":"mark read"}">${CHECK}</button>
+          <a class="read-link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>
+          <button class="edit-btn" data-act="edit-read" data-id="${it.id}" aria-label="edit">✎</button>
+          <button class="del" data-act="rdelete" data-id="${it.id}" aria-label="delete">&times;</button>
+        </li>`;
+    }
+    html += `</ul></section>`;
+  } else {
+    html += `<p class="arch-empty">nothing saved to read yet.</p>`;
+  }
+  html += `
+    <form class="read-add" id="readAdd">
+      <input type="text" class="rtitle" placeholder="title (e.g. article name)" aria-label="title">
+      <input type="url" class="rurl" placeholder="paste link (https://…)" aria-label="link" required>
+      <button class="add" type="submit" aria-label="add">+</button>
     </form>`;
   main.innerHTML = html;
 }
