@@ -6,9 +6,10 @@ a tiny planner for basic matters of life ✦
 
 - **this week / next week** ⟡ plans with optional times; tick them off when done
 - **projects** ⟡ what each of your projects needs; check things off as you handle them
-- **reading** ⟡ links you saved; tap a title and the article opens in a new tab
-- **finances** ⟡ a standing list of your fixed costs, added up per currency
-- **groceries** ⟡ a running list; cross out what you have, uncross when it runs out
+- **reading** ⟡ two parts:
+  - *articles*: links you saved; tap a title and the article opens in a new tab
+  - *books*: titles marked planned or read, with the date you finished them
+- **life admin** ⟡ a general to-do list (doctor's visits, laundry, groceries, the dentist…); tick things off and they move to *done*
 - **archive** ⟡ past weeks tuck themselves away here on their own
 
 ## running it ⋆｡°✩
@@ -31,8 +32,8 @@ the footer has **export data** and **import data**.
 
 ## what can you do ⋆˚꩜｡ ✧
 
-- the round **checkbox** ⟶ ticks / crosses things off
-- tap an item's **text** ⟶ edit it in place (✓ saves, × cancels)
+- the round **checkbox** ⟶ ticks / crosses things off (for a book it marks it read, then you pick the date)
+- tap an item's **text** ⟶ edit it in place (✓ saves, × cancels); a book's date can be changed by tapping it
 - tap a **reading title** ⟶ opens the link (use the little ✎ to edit it instead)
 - the **×** on the right ⟶ deletes
 
